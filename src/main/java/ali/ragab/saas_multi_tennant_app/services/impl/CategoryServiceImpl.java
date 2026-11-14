@@ -1,5 +1,6 @@
 package ali.ragab.saas_multi_tennant_app.services.impl;
 
+import ali.ragab.saas_multi_tennant_app.common.PageResponse;
 import ali.ragab.saas_multi_tennant_app.entities.Category;
 import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
 import ali.ragab.saas_multi_tennant_app.exceptions.ResourceNotFoundException;
@@ -11,6 +12,8 @@ import ali.ragab.saas_multi_tennant_app.services.CategoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -61,12 +64,22 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<CategoryResponse> findAll() {
-        return categoryRepository.findAll()
-                .stream()
-                .map(categoryMapper::toResponse)
-                .toList();
-      }
+    public PageResponse<CategoryResponse> findAll(final int page, final int size) {
+        final PageRequest pageRequest = PageRequest.of(page, size);
+        final Page<Category> categories = this.categoryRepository.findAll(pageRequest);
+        final Page<CategoryResponse> categoryResponses = categories.map(this.categoryMapper::toResponse);
+        return PageResponse.of(categoryResponses);
+    }
+
+
+
+//    @Override
+//    public List<CategoryResponse> findAll() {
+//        return categoryRepository.findAll()
+//                .stream()
+//                .map(categoryMapper::toResponse)
+//                .toList();
+//      }
 
 
     private  void checkIfCategoryExistByname(String name){
