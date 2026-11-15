@@ -1,5 +1,6 @@
 package ali.ragab.saas_multi_tennant_app.controllers;
 
+import ali.ragab.saas_multi_tennant_app.common.PageResponse;
 import ali.ragab.saas_multi_tennant_app.requests.CategoryRequest;
 import ali.ragab.saas_multi_tennant_app.responses.CategoryResponse;
 import ali.ragab.saas_multi_tennant_app.services.CategoryService;
@@ -44,9 +45,14 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.findById(id));
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<CategoryResponse>> getAllCategories() {
-        return ResponseEntity.ok(categoryService.findAll());
+    @GetMapping
+    public ResponseEntity<PageResponse<CategoryResponse>> findAllCategories(
+            @RequestParam(name = "page", defaultValue = "0")
+            final int page,
+            @RequestParam(name = "size", defaultValue = "10")
+            final int size
+    ) {
+        return ResponseEntity.ok(this.categoryService.findAll(page, size));
     }
 
     @DeleteMapping("/delete/{id}")
