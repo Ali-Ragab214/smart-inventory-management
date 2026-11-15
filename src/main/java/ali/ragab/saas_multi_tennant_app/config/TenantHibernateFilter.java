@@ -7,8 +7,8 @@ import org.aspectj.lang.annotation.Before;
 import org.hibernate.Session;
 import org.springframework.stereotype.Component;
 
-@Component
-@Aspect
+//@Component
+//@Aspect
 public class TenantHibernateFilter {
     @PersistenceContext
     private EntityManager entityManager;
