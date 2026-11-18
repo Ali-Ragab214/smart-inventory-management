@@ -3,7 +3,7 @@ package ali.ragab.saas_multi_tennant_app.entities;
 import ali.ragab.saas_multi_tennant_app.common.AbstractEntity;
 import jakarta.persistence.*;
 import lombok.*;
-
+import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @AllArgsConstructor
