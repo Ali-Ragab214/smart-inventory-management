@@ -4,6 +4,8 @@ import ali.ragab.saas_multi_tennant_app.common.AbstractEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.ForeignKey;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -12,6 +14,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
 
@@ -24,6 +28,8 @@ import static jakarta.persistence.EnumType.STRING;
 @SuperBuilder
 @Entity
 @Table(name = "stock_mvts")
+@SQLDelete(sql = "UPDATE stock_mvts SET deleted = true WHERE id = ?")
+@SQLRestriction("deleted = false")
 public class StockMvt extends AbstractEntity {
 
     @Column(name = "type_mvt", nullable = false)
@@ -39,8 +45,8 @@ public class StockMvt extends AbstractEntity {
     @Column(name = "comment", columnDefinition = "TEXT")
     private String comment;
 
-    @ManyToOne
-    @JoinColumn(name = "product_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_id", foreignKey = @ForeignKey(name = "fk_product_id"))
     private Product product;
 
 }
