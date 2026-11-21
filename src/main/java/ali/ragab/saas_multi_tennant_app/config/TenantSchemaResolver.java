@@ -27,7 +27,7 @@ public class TenantSchemaResolver {
                     String.class,
                     tenantId);
             if (companyCode != null) {
-                final String schemaName = "tenant_" + companyCode.toLowerCase();
+                final String schemaName = TenantSchemaName.fromCompanyCode(companyCode);
                 log.debug("Resolved Tenant schema: {} for tenant: {}", schemaName, tenantId);
                 return schemaName;
             }
