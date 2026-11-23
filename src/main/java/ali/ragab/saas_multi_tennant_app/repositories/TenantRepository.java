@@ -5,5 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TenantRepository extends JpaRepository<Tenant, String> {
     boolean existsByEmail(String email);
-    boolean ExistsByCompanyCode(String companyCode);
+    boolean existsByAdminEmail(String adminEmail);
+    boolean existsByCompanyCode(String companyCode);
+    boolean existsByCompanyCodeIgnoreCase(String companyCode);
 }

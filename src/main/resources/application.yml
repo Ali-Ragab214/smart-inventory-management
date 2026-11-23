@@ -31,14 +31,13 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
-        multi_tenancy: SCHEMA # We will need it for later
     show-sql: true
     open-in-view: false
 
   # Flyway Configuration
   flyway:
     enabled: true
-    baseline-on-migrate: true
+    baseline-on-migrate: false
     locations:
       - classpath:db/migration/common
     schemas: public
@@ -54,6 +53,8 @@ app:
     private-key-path: ${JWT_PRIVATE_KEY_PATH:certs/private_key.pem}
     public-key-path: ${JWT_PUBLIC_KEY_PATH:certs/public_key.pem}
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
+  tenant-migrations:
+    migrate-on-startup: ${TENANT_MIGRATIONS_ON_STARTUP:true}
 
 springdoc:
   default-produces-media-type: application/json

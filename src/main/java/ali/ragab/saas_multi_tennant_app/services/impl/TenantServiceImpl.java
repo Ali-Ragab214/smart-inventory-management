@@ -5,6 +5,7 @@ import ali.ragab.saas_multi_tennant_app.entities.Tenant;
 import ali.ragab.saas_multi_tennant_app.entities.TenantStatus;
 import ali.ragab.saas_multi_tennant_app.entities.User;
 import ali.ragab.saas_multi_tennant_app.entities.UserRole;
+import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
 import ali.ragab.saas_multi_tennant_app.mappers.TenantMapper;
 import ali.ragab.saas_multi_tennant_app.repositories.TenantRepository;
 import ali.ragab.saas_multi_tennant_app.repositories.UserRepository;
@@ -13,9 +14,9 @@ import ali.ragab.saas_multi_tennant_app.responses.TenantResponse;
 import ali.ragab.saas_multi_tennant_app.services.ProvisioningService;
 import ali.ragab.saas_multi_tennant_app.services.TenantService;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,20 +35,27 @@ public class TenantServiceImpl implements TenantService {
 
 
     @Override
+    @Transactional
     public void registerTenant(RegisterTenantRequest request) {
-        //first checking if the tenant already exist by companyCode
-        if(this.repository.ExistsByCompanyCode(request.getCompanyCode())){
-            throw new DuplicateKeyException("Tenant with company code " + request.getCompanyCode() + " already exists");
+        //first checking if the tenant already exist by companyCode (case-insensitive)
+        if(this.repository.existsByCompanyCodeIgnoreCase(request.getCompanyCode())){
+            throw new DuplicateResourceException("Tenant with company code " + request.getCompanyCode() + " already exists");
         }
         if(this.repository.existsByEmail(request.getEmail())){
-            throw new DuplicateKeyException("Tenant with email " + request.getEmail() + " already exists");
+            throw new DuplicateResourceException("Tenant with email " + request.getEmail() + " already exists");
+        }
+        if(this.repository.existsByAdminEmail(request.getAdminEmail())){
+            throw new DuplicateResourceException("Tenant admin with email " + request.getAdminEmail() + " already exists");
         }
 
         final Tenant tenant = this.mapper.toEntity(request);
         tenant.setAdminPassword(this.passwordEncoder.encode(request.getAdminPassword()));
         tenant.setStatus(TenantStatus.PENDING);
 
+        final Tenant savedTenant = this.repository.save(tenant);
+        createAdminUserForTenant(savedTenant);
 
+        log.info("Tenant {} registered with status {}", savedTenant.getCompanyCode(), savedTenant.getStatus());
     }
 
     @Override
@@ -56,22 +64,23 @@ public class TenantServiceImpl implements TenantService {
         final Tenant tenant = this.repository.findById(tenantId)
                 .orElseThrow(() -> new EntityNotFoundException("Tenant with id " + tenantId + " not found"));
 
+        if (tenant.getStatus() != TenantStatus.PENDING) {
+            throw new IllegalStateException("Tenant with id " + tenantId + " is not in PENDING state");
+        }
+
+        // Provision first: if it fails, the tenant stays PENDING and the exception
+        // reaches the caller instead of being swallowed.
+        this.provisioningService.provisionTenant(tenant);
+
+        final User adminUser = this.userRepository.findByUsername(tenant.getAdminUserName())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Admin user not found for tenant " + tenant.getCompanyCode()));
+        adminUser.setEnabled(true);
+        this.userRepository.save(adminUser);
+
         tenant.setStatus(TenantStatus.ACTIVE);
         this.repository.save(tenant);
-
-        try {
-            //provision the schema for the tenant
-            this.provisioningService.provisionTenant(tenant);
-        }
-        catch (final Exception e ) {
-        rollBackTenantStatus(tenant);
-    }
-
-    }
-
-    private void rollBackTenantStatus(Tenant tenant) {
-        tenant.setStatus(TenantStatus.PENDING);
-        this.repository.save(tenant);
+        log.info("Tenant {} approved and provisioned", tenant.getCompanyCode());
     }
 
     @Override
@@ -122,7 +131,7 @@ public class TenantServiceImpl implements TenantService {
     private void createAdminUserForTenant(final Tenant tenant) {
         final var adminUser = userRepository.findByUsername(tenant.getAdminUserName());
         if (adminUser.isPresent()) {
-            throw new DuplicateKeyException("Admin user with username " + tenant.getAdminUserName() + " already exists");
+            throw new DuplicateResourceException("Admin user with username " + tenant.getAdminUserName() + " already exists");
         }
 
         final var user = User.builder()
@@ -133,6 +142,7 @@ public class TenantServiceImpl implements TenantService {
                 .password(tenant.getAdminPassword())
                 .role(UserRole.ROLE_COMPANY_ADMIN)
                 .tenant(tenant)
+                .enabled(false)
                 .deleted(false)
                 .build();
 
