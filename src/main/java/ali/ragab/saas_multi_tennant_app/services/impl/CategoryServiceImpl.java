@@ -6,6 +6,7 @@ import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
 import ali.ragab.saas_multi_tennant_app.exceptions.ResourceNotFoundException;
 import ali.ragab.saas_multi_tennant_app.mappers.CategoryMapper;
 import ali.ragab.saas_multi_tennant_app.repositories.CategoryRepository;
+import ali.ragab.saas_multi_tennant_app.repositories.ProductRepository;
 import ali.ragab.saas_multi_tennant_app.requests.CategoryRequest;
 import ali.ragab.saas_multi_tennant_app.responses.CategoryResponse;
 import ali.ragab.saas_multi_tennant_app.services.CategoryService;
@@ -25,6 +26,7 @@ import java.util.Optional;
 @Transactional
 public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
     private final CategoryMapper categoryMapper;
 
     @Override
@@ -60,6 +62,12 @@ public class CategoryServiceImpl implements CategoryService {
     public void delete(String id) {
         var category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category with id " + id + " not found"));
+
+        // Soft delete keeps the row, so the FK cannot null the column for us.
+        // Detach the products first (same effect as ON DELETE SET NULL).
+        final int detached = this.productRepository.detachFromCategory(id);
+        log.debug("Detached {} products from category {}", detached, id);
+
         categoryRepository.delete(category);
     }
 
