@@ -7,6 +7,7 @@ import ali.ragab.saas_multi_tennant_app.entities.Tenant;
 import ali.ragab.saas_multi_tennant_app.entities.TenantStatus;
 import ali.ragab.saas_multi_tennant_app.entities.User;
 import ali.ragab.saas_multi_tennant_app.entities.UserRole;
+import ali.ragab.saas_multi_tennant_app.exceptions.ConflictException;
 import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
 import ali.ragab.saas_multi_tennant_app.exceptions.InvalidRequestException;
 import ali.ragab.saas_multi_tennant_app.mappers.UserMapper;
@@ -22,6 +23,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -72,6 +75,14 @@ public class UserServiceImpl implements UserService {
 
         final User user = loadOwned(userId);
 
+        // cannot demote the last active company admin
+        if (user.getRole() == UserRole.ROLE_COMPANY_ADMIN
+                && request.getRole() != UserRole.ROLE_COMPANY_ADMIN
+                && user.isEnabled()
+                && this.repository.countActiveByTenantIdAndRole(tenantId, UserRole.ROLE_COMPANY_ADMIN) <= 1) {
+            throw new ConflictException("Cannot demote the last active company admin");
+        }
+
         // check if username is being changed and if it is already taken
         if (!user.getUsername().equals(request.getUsername()) && this.repository.existsByUsername(request.getUsername())) {
             throw new DuplicateResourceException("Username already exists");
@@ -99,6 +110,15 @@ public class UserServiceImpl implements UserService {
         log.info("Deleting user for tenant: {}", tenantId);
 
         final User user = loadOwned(userId);
+
+        if (Objects.equals(user.getId(), currentUserId())) {
+            throw new ConflictException("You cannot delete your own account");
+        }
+        if (user.getRole() == UserRole.ROLE_COMPANY_ADMIN
+                && user.isEnabled()
+                && this.repository.countActiveByTenantIdAndRole(tenantId, UserRole.ROLE_COMPANY_ADMIN) <= 1) {
+            throw new ConflictException("Cannot delete the last active company admin");
+        }
 
         user.setDeleted(true);
         this.repository.save(user);
@@ -142,6 +162,15 @@ public class UserServiceImpl implements UserService {
 
         final User user = loadOwned(userId);
 
+        if (Objects.equals(user.getId(), currentUserId())) {
+            throw new ConflictException("You cannot disable your own account");
+        }
+        if (user.getRole() == UserRole.ROLE_COMPANY_ADMIN
+                && user.isEnabled()
+                && this.repository.countActiveByTenantIdAndRole(tenantId, UserRole.ROLE_COMPANY_ADMIN) <= 1) {
+            throw new ConflictException("Cannot disable the last active company admin");
+        }
+
         user.setEnabled(false);
         this.repository.save(user);
         log.info("User disabled successfully");
@@ -152,6 +181,14 @@ public class UserServiceImpl implements UserService {
         final String tenantId = TenantContext.requireTenantId();
         return this.repository.findByIdAndTenantIdAndDeletedFalse(userId, tenantId)
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    }
+
+    private String currentUserId() {
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("Authenticated user is required");
+        }
+        return authentication.getPrincipal().toString();
     }
 
     @Override

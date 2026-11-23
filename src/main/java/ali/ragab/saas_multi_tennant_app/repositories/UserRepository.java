@@ -1,6 +1,7 @@
 package ali.ragab.saas_multi_tennant_app.repositories;
 
 import ali.ragab.saas_multi_tennant_app.entities.User;
+import ali.ragab.saas_multi_tennant_app.entities.UserRole;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,5 +24,8 @@ public interface UserRepository extends JpaRepository<User, String> {
     boolean existsByUsername(String username);
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId AND u.deleted = false")
     Page<User> findAllByTenantId(String tenantId, Pageable pageable);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.tenant.id = :tenantId AND u.role = :role AND u.enabled = true AND u.deleted = false")
+    long countActiveByTenantIdAndRole(@Param("tenantId") String tenantId, @Param("role") UserRole role);
 
 }
