@@ -36,3 +36,7 @@ build/
 .env
 *.md
 stocksavvy-agent-tasks/
+
+### Keys / certificates ###
+certs/
+*.pem
