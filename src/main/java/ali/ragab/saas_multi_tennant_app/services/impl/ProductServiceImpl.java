@@ -3,9 +3,11 @@ package ali.ragab.saas_multi_tennant_app.services.impl;
 import ali.ragab.saas_multi_tennant_app.common.PageResponse;
 import ali.ragab.saas_multi_tennant_app.entities.Category;
 import ali.ragab.saas_multi_tennant_app.entities.Product;
+import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
 import ali.ragab.saas_multi_tennant_app.mappers.ProductMapper;
 import ali.ragab.saas_multi_tennant_app.repositories.CategoryRepository;
 import ali.ragab.saas_multi_tennant_app.repositories.ProductRepository;
+import ali.ragab.saas_multi_tennant_app.repositories.StockMvtRepository;
 import ali.ragab.saas_multi_tennant_app.requests.ProductRequest;
 import ali.ragab.saas_multi_tennant_app.responses.ProductResponse;
 import ali.ragab.saas_multi_tennant_app.services.ProductService;
@@ -26,26 +28,36 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository repository;
     private final CategoryRepository categoryRepository;
+    private final StockMvtRepository stockMvtRepository;
     private final ProductMapper productMapper;
 
     @Override
     public void create(ProductRequest request) {
 
-        checkIfProductAlreadyExistsByReference(request.getReference());
-        checkIfCategoryExistById(request.getCategoryId());
+        checkIfProductAlreadyExistsByReference(request.getReference(), null);
+        final Category category = resolveCategory(request.getCategoryId());
 
         final Product entity = this.productMapper.toEntity(request);
+        entity.setCategory(category);
         this.repository.save(entity);
     }
 
     @Override
     public void update(String id, ProductRequest request) {
-        checkIfProductAlreadyExistsByReference(request.getReference());
-        checkIfCategoryExistById(request.getCategoryId());
+        final Product product = this.repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Product does not exist"));
 
-        final Product productToUpdate = this.productMapper.toEntity(request);
-        productToUpdate.setId(id);
-        this.repository.save(productToUpdate);
+        checkIfProductAlreadyExistsByReference(request.getReference(), id);
+        final Category category = resolveCategory(request.getCategoryId());
+
+        product.setName(request.getName());
+        product.setReference(request.getReference());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setAlertThreshold(request.getAlertThreshold());
+        product.setCategory(category);
+
+        this.repository.save(product);
     }
 
     @Override
@@ -67,22 +79,27 @@ public class ProductServiceImpl implements ProductService {
     public void delete(String id) {
         final Product product = this.repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product does not exist"));
+
+        // Soft delete keeps the row, so the FK cannot cascade for us.
+        final int movements = this.stockMvtRepository.softDeleteByProductId(id);
+        log.debug("Soft-deleted {} stock movements for product {}", movements, id);
+
         this.repository.delete(product);
     }
 
-    private void checkIfProductAlreadyExistsByReference(String reference) {
+    private void checkIfProductAlreadyExistsByReference(String reference, String excludedId) {
         final Optional<Product> product = this.repository.findByReferenceIgnoreCase(reference);
-        if (product.isPresent()) {
+        if (product.isPresent() && (excludedId == null || !product.get().getId().equals(excludedId))) {
             log.debug("Product already exists");
-            throw new RuntimeException("Product already exists"); // we will use custom exception later
+            throw new DuplicateResourceException("Product with reference " + reference + " already exists");
         }
     }
 
-    private void checkIfCategoryExistById(String categoryId) {
-        final Optional<Category> category = this.categoryRepository.findById(categoryId);
-        if (category.isEmpty()) {
-            log.debug("Category does not exist");
-            throw new EntityNotFoundException("Category does not exist");
+    private Category resolveCategory(String categoryId) {
+        if (categoryId == null || categoryId.isBlank()) {
+            return null;
         }
+        return this.categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new EntityNotFoundException("Category does not exist"));
     }
 }

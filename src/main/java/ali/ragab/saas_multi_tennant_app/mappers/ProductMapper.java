@@ -17,9 +17,9 @@ public class ProductMapper {
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .alertThreshold(request.getAlertThreshold())
-                .category(Category.builder()
-                        .id(request.getCategoryId())
-                        .build())
+                .category(request.getCategoryId() == null
+                        ? null
+                        : Category.builder().id(request.getCategoryId()).build())
                 .build();
     }
 
@@ -30,8 +30,9 @@ public class ProductMapper {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .alertThreshold(product.getAlertThreshold())
-                .categoryName(product.getCategory()
-                        .getName())
+                .categoryName(product.getCategory() == null
+                        ? null
+                        : product.getCategory().getName())
                 // .availableQuantity() to be later implemented
                 .build();
     }
