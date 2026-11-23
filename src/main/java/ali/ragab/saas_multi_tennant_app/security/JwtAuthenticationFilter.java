@@ -1,6 +1,7 @@
 package ali.ragab.saas_multi_tennant_app.security;
 
 import ali.ragab.saas_multi_tennant_app.config.TenantContext;
+import ali.ragab.saas_multi_tennant_app.config.TenantSchemaResolver;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,6 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        TenantContext.clearCurrentTenant();
+
         try {
             final String jwt = getJwtFromRequest(request);
             if (StringUtils.hasText(jwt) && this.jwtTokenService.validateToken(jwt)) {
@@ -68,9 +71,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             log.error("Error authenticating user", e);
         }
 
-        filterChain.doFilter(request, response);
-
-        TenantContext.clear();
+        try {
+            filterChain.doFilter(request, response);
+        } finally {
+            TenantContext.clearCurrentTenant();
+        }
     }
 
     private String getJwtFromRequest(final HttpServletRequest request) {

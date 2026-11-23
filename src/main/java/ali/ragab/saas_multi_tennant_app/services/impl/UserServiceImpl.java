@@ -4,6 +4,7 @@ package ali.ragab.saas_multi_tennant_app.services.impl;
 import ali.ragab.saas_multi_tennant_app.common.PageResponse;
 import ali.ragab.saas_multi_tennant_app.config.TenantContext;
 import ali.ragab.saas_multi_tennant_app.entities.Tenant;
+import ali.ragab.saas_multi_tennant_app.entities.TenantStatus;
 import ali.ragab.saas_multi_tennant_app.entities.User;
 import ali.ragab.saas_multi_tennant_app.entities.UserRole;
 import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
@@ -20,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -47,7 +49,7 @@ public class UserServiceImpl implements UserService {
         if (this.repository.existsByEmail(request.getEmail()))
             throw new DuplicateKeyException("User with email " + request.getEmail() + " already exists");
 
-        if (request.getRole() == UserRole.ROLE_USER)
+        if (request.getRole() == UserRole.ROLE_PLATFORM_ADMIN)
             throw new InvalidRequestException("platform admin cannot be selected as a role");
 
         final User user = this.mapper.toEntity(request);
@@ -178,8 +180,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return this.repository.findByUsername(username)
+        final User user = this.repository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
+
+        // Platform admins have no tenant. Tenant users may only log in while their tenant is ACTIVE.
+        if (user.getTenant() != null && user.getTenant().getStatus() != TenantStatus.ACTIVE) {
+            throw new DisabledException("Tenant is not active");
+        }
+
+        return user;
     }
 }
 

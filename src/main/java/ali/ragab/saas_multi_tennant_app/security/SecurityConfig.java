@@ -46,17 +46,33 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth ->
+                .authorizeHttpRequests(auth -> auth
+                        // --- public ---
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register").permitAll()
+                        .requestMatchers(PUBLIC_URLS).permitAll()
+                        .requestMatchers("/error").permitAll()
 
-                        // public routes
-                        auth.requestMatchers(PUBLIC_URLS)
-                                .permitAll()
-                                .requestMatchers(HttpMethod.OPTIONS, "/**")
-                                .permitAll()
+                        // --- platform ---
+                        .requestMatchers("/api/v1/tenants/**").hasRole("PLATFORM_ADMIN")
 
-                                // all other routes require authentication
-                                .anyRequest()
-                                .authenticated()
+                        // --- users ---
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
+                        .requestMatchers("/api/v1/users/**").hasRole("COMPANY_ADMIN")
+
+                        // --- stock ledger: append-only ---
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/stock-mvts/**").denyAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/stock-mvts/**").denyAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/stock-mvts/*/reverse").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/stock-mvts").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR", "SALES_OPERATOR")
+
+                        // --- tenant business data: قراءة ---
+                        .requestMatchers(HttpMethod.GET, "/api/v1/categories/**", "/api/v1/products/**", "/api/v1/stock-mvts/**")
+                        .hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR", "SALES_OPERATOR", "USER")
+                        // --- catalog: كتابة ---
+                        .requestMatchers("/api/v1/categories/**", "/api/v1/products/**")
+                        .hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
+                        .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .addFilterBefore(this.jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
