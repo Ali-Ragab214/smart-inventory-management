@@ -41,7 +41,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void createUser(UserRequest request) {
 
-        final String tenantId = TenantContext.getCurrentTenant();
+        final String tenantId = TenantContext.requireTenantId();
         log.info("Creating user for tenant: {}", tenantId);
         if (this.repository.existsByUsername(request.getUsername()))
             throw new DuplicateKeyException("User with username " + request.getUsername() + "already exists");
@@ -62,7 +62,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUser(String userId, UserRequest request) {
-        final String tenantId = TenantContext.getCurrentTenant();
+        final String tenantId = TenantContext.requireTenantId();
         log.info("Updating user for tenant: {}", tenantId);
 
         // validate role (cannot be PLATFORM_ADMIN)
@@ -102,7 +102,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(String userId) {
-        final String tenantId = TenantContext.getCurrentTenant();
+        final String tenantId = TenantContext.requireTenantId();
         log.info("Deleting user for tenant: {}", tenantId);
 
         final User user = this.repository.findByIdAndNotDeleted(userId)
@@ -120,7 +120,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getUserById(String userId) {
-        final String tenantId = TenantContext.getCurrentTenant();
+        final String tenantId = TenantContext.requireTenantId();
         log.info("fetching user for tenant: {}", tenantId);
 
         final User user = this.repository.findByIdAndNotDeleted(userId)
@@ -134,7 +134,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PageResponse<UserResponse> getAllUsers(int page, int size) {
-        final String tenantId = TenantContext.getCurrentTenant();
+        final String tenantId = TenantContext.requireTenantId();
         final PageRequest pageRequest = PageRequest.of(page, size);
         final Page<User> userPage = this.repository.findAllByTenantId(tenantId, pageRequest);
         final Page<UserResponse> userResponses = userPage.map(this.mapper::toResponse);
@@ -143,7 +143,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void enableUser(String userId) {
-     final String tenantId = TenantContext.getCurrentTenant();
+     final String tenantId = TenantContext.requireTenantId();
         log.info("Enabling user for tenant: {}", tenantId);
 
         final User user = this.repository.findByIdAndNotDeleted(userId)
@@ -161,7 +161,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void disableUser(String userId) {
-        final String tenantId = TenantContext.getCurrentTenant();
+        final String tenantId = TenantContext.requireTenantId();
         log.info("Disabling user for tenant: {}", tenantId);
 
         final User user = this.repository.findByIdAndNotDeleted(userId)

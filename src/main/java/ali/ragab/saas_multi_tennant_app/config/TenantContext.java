@@ -14,6 +14,14 @@ public class TenantContext {
         return CURRENT_TENANT.get();
     }
 
+    public static String requireTenantId() {
+        final String tenantId = CURRENT_TENANT.get();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("Tenant context is missing");
+        }
+        return tenantId;
+    }
+
     public static void setCurrentSchema(final String tenant) {
         CURRENT_SCHEMA.set(tenant);
     }
