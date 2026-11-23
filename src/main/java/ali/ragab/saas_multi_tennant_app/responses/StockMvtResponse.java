@@ -1,7 +1,10 @@
 package ali.ragab.saas_multi_tennant_app.responses;
 
 
+import ali.ragab.saas_multi_tennant_app.entities.TypeMvt;
 import lombok.*;
+
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -10,8 +13,9 @@ import lombok.*;
 @Builder
 public class StockMvtResponse {
 
+    private String id;
+    private TypeMvt typeMvt;
     private Integer quantity;
-    private String typeMvt;
+    private LocalDate dateMvt;
     private String comment;
-    private String dateMvt;
 }
