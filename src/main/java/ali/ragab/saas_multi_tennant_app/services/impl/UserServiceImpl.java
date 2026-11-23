@@ -70,8 +70,7 @@ public class UserServiceImpl implements UserService {
             throw new InvalidRequestException("Platform admin role cannot be assigned");
         }
 
-        final User user = this.repository.findByIdAndNotDeleted(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User does not exist"));
+        final User user = loadOwned(userId);
 
         // check if username is being changed and if it is already taken
         if (!user.getUsername().equals(request.getUsername()) && this.repository.existsByUsername(request.getUsername())) {
@@ -82,12 +81,6 @@ public class UserServiceImpl implements UserService {
         if (!user.getEmail().equals(request.getEmail()) && this.repository.existsByEmail(request.getEmail())) {
             throw new DuplicateResourceException("Email already exists");
         }
-
-        // check if user belongs to the tenant
-        if (!user.getTenant().getId().equals(tenantId)) {
-            throw new InvalidRequestException("User does not belong to the tenant");
-        }
-        
 
         // update user details
         user.setUsername(request.getUsername());
@@ -105,13 +98,7 @@ public class UserServiceImpl implements UserService {
         final String tenantId = TenantContext.requireTenantId();
         log.info("Deleting user for tenant: {}", tenantId);
 
-        final User user = this.repository.findByIdAndNotDeleted(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User does not exist"));
-
-        // check if user belongs to the tenant
-        if (!user.getTenant().getId().equals(tenantId)) {
-            throw new InvalidRequestException("User does not belong to the tenant");
-        }
+        final User user = loadOwned(userId);
 
         user.setDeleted(true);
         this.repository.save(user);
@@ -123,12 +110,7 @@ public class UserServiceImpl implements UserService {
         final String tenantId = TenantContext.requireTenantId();
         log.info("fetching user for tenant: {}", tenantId);
 
-        final User user = this.repository.findByIdAndNotDeleted(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User does not exist"));
-
-        if(!user.getTenant().getId().equals(tenantId)) {
-            throw new InvalidRequestException("User does not belong to the tenant");
-        }
+        final User user = loadOwned(userId);
         return this.mapper.toResponse(user);
     }
 
@@ -146,13 +128,7 @@ public class UserServiceImpl implements UserService {
      final String tenantId = TenantContext.requireTenantId();
         log.info("Enabling user for tenant: {}", tenantId);
 
-        final User user = this.repository.findByIdAndNotDeleted(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User does not exist"));
-
-        // check if user belongs to the tenant
-        if (!user.getTenant().getId().equals(tenantId)) {
-            throw new InvalidRequestException("User does not belong to the tenant");
-        }
+        final User user = loadOwned(userId);
 
         user.setEnabled(true);
         this.repository.save(user);
@@ -164,18 +140,18 @@ public class UserServiceImpl implements UserService {
         final String tenantId = TenantContext.requireTenantId();
         log.info("Disabling user for tenant: {}", tenantId);
 
-        final User user = this.repository.findByIdAndNotDeleted(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User does not exist"));
-
-        // check if user belongs to the tenant
-        if (!user.getTenant().getId().equals(tenantId)) {
-            throw new InvalidRequestException("User does not belong to the tenant");
-        }
+        final User user = loadOwned(userId);
 
         user.setEnabled(false);
         this.repository.save(user);
         log.info("User disabled successfully");
 
+    }
+
+    private User loadOwned(final String userId) {
+        final String tenantId = TenantContext.requireTenantId();
+        return this.repository.findByIdAndTenantIdAndDeletedFalse(userId, tenantId)
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
     }
 
     @Override
