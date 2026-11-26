@@ -3,11 +3,15 @@ package ali.ragab.saas_multi_tennant_app.auth.service;
 import ali.ragab.saas_multi_tennant_app.auth.requests.LoginRequest;
 import ali.ragab.saas_multi_tennant_app.auth.responses.LoginResponse;
 import ali.ragab.saas_multi_tennant_app.entities.User;
+import ali.ragab.saas_multi_tennant_app.mappers.UserMapper;
+import ali.ragab.saas_multi_tennant_app.repositories.UserRepository;
+import ali.ragab.saas_multi_tennant_app.responses.UserResponse;
 import ali.ragab.saas_multi_tennant_app.security.JwtTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 
@@ -17,6 +21,8 @@ public class AuthenticationServiceImpl implements AuthenticationService{
 
     private final AuthenticationManager authenticationManager;
     private final JwtTokenService jwtTokenService;
+    private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     public LoginResponse login(final LoginRequest request) {
@@ -39,5 +45,12 @@ public class AuthenticationServiceImpl implements AuthenticationService{
                 .accessToken(token)
                 .tokenType(tokenType)
                 .build();
+    }
+
+    @Override
+    public UserResponse me(final String userId) {
+        final User user = this.userRepository.findByIdAndNotDeleted(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+        return this.userMapper.toResponse(user);
     }
 }

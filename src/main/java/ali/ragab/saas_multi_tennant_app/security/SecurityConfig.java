@@ -25,7 +25,6 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 public class SecurityConfig {
 
     private static final String[] PUBLIC_URLS = {
-            "/api/v1/auth/**",
             "/v2/api-docs",
             "/v3/api-docs",
             "/v3/api-docs/**",
@@ -40,18 +39,24 @@ public class SecurityConfig {
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ApiAuthenticationEntryPoint apiAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(final HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .exceptionHandling(exceptionHandling ->
+                        exceptionHandling.authenticationEntryPoint(this.apiAuthenticationEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // --- public ---
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/register").permitAll()
                         .requestMatchers(PUBLIC_URLS).permitAll()
                         .requestMatchers("/error").permitAll()
+
+                        // --- current user profile ---
+                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
 
                         // --- platform ---
                         .requestMatchers("/api/v1/tenants/**").hasRole("PLATFORM_ADMIN")

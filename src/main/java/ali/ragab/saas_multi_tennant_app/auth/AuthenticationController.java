@@ -5,11 +5,14 @@ import ali.ragab.saas_multi_tennant_app.auth.requests.LoginRequest;
 import ali.ragab.saas_multi_tennant_app.auth.responses.LoginResponse;
 import ali.ragab.saas_multi_tennant_app.auth.service.AuthenticationService;
 import ali.ragab.saas_multi_tennant_app.requests.RegisterTenantRequest;
+import ali.ragab.saas_multi_tennant_app.responses.UserResponse;
 import ali.ragab.saas_multi_tennant_app.services.TenantService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,5 +44,11 @@ public class AuthenticationController {
     ) {
         this.tenantService.registerTenant(request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> me(final Authentication authentication) {
+        final UserResponse user = this.authenticationService.me(authentication.getPrincipal().toString());
+        return ResponseEntity.ok(user);
     }
 }
