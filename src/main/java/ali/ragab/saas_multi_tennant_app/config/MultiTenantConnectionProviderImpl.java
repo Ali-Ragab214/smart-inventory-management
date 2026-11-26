@@ -42,21 +42,47 @@ private final DataSource dataSource;
                 }
                 log.trace("Set search_path to: {}", tenantIdentifier);
             }
-        } catch (final SQLException e) {
-            log.error("Error getting connection for tenant: {}", tenantIdentifier, e);
+            return connection;
+        } catch (final SQLException | RuntimeException e) {
+            log.error("Error setting search_path for tenant: {}. Closing the leased connection.", tenantIdentifier, e);
+            closeQuietly(connection);
             throw e;
         }
-        return connection;
     }
 
     @Override
     public void releaseConnection(final String tenantIdentifier, final Connection connection) throws SQLException {
+        boolean reset = false;
         try (Statement statement = connection.createStatement()) {
             statement.execute("SET search_path TO public");
-        } catch (final SQLException e) {
-            log.error("Error getting connection for tenant: {}", tenantIdentifier, e);
+            reset = true;
+        } catch (final SQLException | RuntimeException e) {
+            log.error("Failed to reset search_path for tenant: {}. "
+                    + "Aborting the connection instead of returning it to the pool.", tenantIdentifier, e);
         }
-        connection.close();
+
+        if (reset) {
+            connection.close();
+            return;
+        }
+
+        abortQuietly(connection);
+    }
+
+    private void closeQuietly(final Connection connection) {
+        try {
+            connection.close();
+        } catch (final SQLException | RuntimeException e) {
+            log.error("Failed to close connection after a failed search_path change", e);
+        }
+    }
+
+    private void abortQuietly(final Connection connection) {
+        try {
+            connection.abort(Runnable::run);
+        } catch (final SQLException | RuntimeException e) {
+            log.error("Failed to abort dirty connection; it must not be reused", e);
+        }
     }
 
     @Override

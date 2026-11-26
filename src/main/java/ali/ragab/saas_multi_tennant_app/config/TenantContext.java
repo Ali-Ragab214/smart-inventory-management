@@ -1,5 +1,7 @@
 package ali.ragab.saas_multi_tennant_app.config;
 
+import ali.ragab.saas_multi_tennant_app.exceptions.TenantResolutionException;
+
 public class TenantContext {
     private static final ThreadLocal<String> CURRENT_TENANT = new ThreadLocal<>();
 
@@ -14,12 +16,16 @@ public class TenantContext {
         return CURRENT_TENANT.get();
     }
 
-    public static String requireTenantId() {
+    public static String requireTenant() {
         final String tenantId = CURRENT_TENANT.get();
         if (tenantId == null || tenantId.isBlank()) {
-            throw new IllegalStateException("Tenant context is missing");
+            throw new TenantResolutionException("Tenant context is missing");
         }
         return tenantId;
+    }
+
+    public static String requireTenantId() {
+        return requireTenant();
     }
 
     public static void setCurrentSchema(final String tenant) {
