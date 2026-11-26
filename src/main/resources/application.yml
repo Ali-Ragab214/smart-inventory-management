@@ -53,6 +53,10 @@ app:
     private-key-path: ${JWT_PRIVATE_KEY_PATH:certs/private_key.pem}
     public-key-path: ${JWT_PUBLIC_KEY_PATH:certs/public_key.pem}
     access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:86400000}
+  platform-admin:
+    username: ${PLATFORM_ADMIN_USERNAME:}
+    email: ${PLATFORM_ADMIN_EMAIL:}
+    password: ${PLATFORM_ADMIN_PASSWORD:}
   tenant-migrations:
     migrate-on-startup: ${TENANT_MIGRATIONS_ON_STARTUP:true}
 
