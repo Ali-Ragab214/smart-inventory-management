@@ -17,6 +17,10 @@ public class ProductMapper {
                 .description(request.getDescription())
                 .price(request.getPrice())
                 .alertThreshold(request.getAlertThreshold())
+                .unitOfMeasure(request.getUnitOfMeasure() == null || request.getUnitOfMeasure().isBlank()
+                        ? "UNIT"
+                        : request.getUnitOfMeasure())
+                .active(request.getActive() == null || request.getActive())
                 .category(request.getCategoryId() == null
                         ? null
                         : Category.builder().id(request.getCategoryId()).build())
@@ -25,14 +29,18 @@ public class ProductMapper {
 
     public ProductResponse toResponse(final Product product) {
         return ProductResponse.builder()
+                .id(product.getId())
                 .name(product.getName())
                 .reference(product.getReference())
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .alertThreshold(product.getAlertThreshold())
+                .categoryId(product.getCategory() == null ? null : product.getCategory().getId())
                 .categoryName(product.getCategory() == null
                         ? null
                         : product.getCategory().getName())
+                .unitOfMeasure(product.getUnitOfMeasure())
+                .active(product.getActive())
                 // .availableQuantity() to be later implemented
                 .build();
     }

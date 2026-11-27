@@ -32,19 +32,19 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     @Override
-    public void create(ProductRequest request) {
+    public ProductResponse create(final ProductRequest request) {
 
         checkIfProductAlreadyExistsByReference(request.getReference(), null);
         final Category category = resolveCategory(request.getCategoryId());
 
         final Product entity = this.productMapper.toEntity(request);
         entity.setCategory(category);
-        this.repository.save(entity);
+        return this.productMapper.toResponse(this.repository.save(entity));
     }
 
     @Override
-    public void update(String id, ProductRequest request) {
-        final Product product = this.repository.findById(id)
+    public ProductResponse update(final String id, final ProductRequest request) {
+        final Product product = this.repository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product does not exist"));
 
         checkIfProductAlreadyExistsByReference(request.getReference(), id);
@@ -55,29 +55,37 @@ public class ProductServiceImpl implements ProductService {
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setAlertThreshold(request.getAlertThreshold());
+        if (request.getUnitOfMeasure() != null && !request.getUnitOfMeasure().isBlank()) {
+            product.setUnitOfMeasure(request.getUnitOfMeasure());
+        }
+        if (request.getActive() != null) {
+            product.setActive(request.getActive());
+        }
         product.setCategory(category);
 
-        this.repository.save(product);
+        return this.productMapper.toResponse(this.repository.save(product));
     }
 
     @Override
-    public PageResponse<ProductResponse> findAll(int page, int size) {
+    public PageResponse<ProductResponse> findAll(final int page, final int size, final String search) {
         final PageRequest pageRequest = PageRequest.of(page, size);
-        final Page<Product> products = this.repository.findAll(pageRequest);
+        final Page<Product> products = search == null || search.isBlank()
+                ? this.repository.findAllByDeletedFalse(pageRequest)
+                : this.repository.searchActiveProducts(search.trim(), pageRequest);
         final Page<ProductResponse> productResponses = products.map(this.productMapper::toResponse);
         return PageResponse.of(productResponses);
     }
 
     @Override
-    public ProductResponse findById(String id) {
-        return this.repository.findById(id)
+    public ProductResponse findById(final String id) {
+        return this.repository.findByIdAndDeletedFalse(id)
                 .map(this.productMapper::toResponse)
                 .orElseThrow(() -> new EntityNotFoundException("Product does not exist"));
     }
 
     @Override
-    public void delete(String id) {
-        final Product product = this.repository.findById(id)
+    public void delete(final String id) {
+        final Product product = this.repository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product does not exist"));
 
         // Soft delete keeps the row, so the FK cannot cascade for us.
@@ -88,7 +96,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private void checkIfProductAlreadyExistsByReference(String reference, String excludedId) {
-        final Optional<Product> product = this.repository.findByReferenceIgnoreCase(reference);
+        final Optional<Product> product = this.repository.findByReferenceIgnoreCaseAndDeletedFalse(reference);
         if (product.isPresent() && (excludedId == null || !product.get().getId().equals(excludedId))) {
             log.debug("Product already exists");
             throw new DuplicateResourceException("Product with reference " + reference + " already exists");
@@ -101,5 +109,12 @@ public class ProductServiceImpl implements ProductService {
         }
         return this.categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new EntityNotFoundException("Category does not exist"));
+    }
+
+    @Override
+    public ProductResponse findByReference(final String reference) {
+        return this.repository.findByReferenceIgnoreCaseAndDeletedFalse(reference)
+                .map(this.productMapper::toResponse)
+                .orElseThrow(() -> new EntityNotFoundException("Product does not exist"));
     }
 }

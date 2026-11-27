@@ -9,6 +9,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -44,6 +45,14 @@ public class Product extends AbstractEntity {
 
     @Column(name = "price", nullable = false, precision = 19, scale = 2)
     private BigDecimal price;
+
+    @Builder.Default
+    @Column(name = "unit_of_measure", nullable = false, length = 20)
+    private String unitOfMeasure = "UNIT";
+
+    @Builder.Default
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", foreignKey = @ForeignKey(name = "fk_category_id"))
