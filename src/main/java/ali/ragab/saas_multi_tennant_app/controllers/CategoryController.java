@@ -23,7 +23,7 @@ public class CategoryController {
 
 
     @PostMapping("/create")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
     public ResponseEntity<Void> createCategory(
             @Valid
             @RequestBody final CategoryRequest request) {
@@ -33,7 +33,7 @@ public class CategoryController {
 
 
     @PutMapping("/update/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
     public ResponseEntity<Void> updateCategory(
             @PathVariable("id") final String id,
             @Valid
@@ -43,14 +43,14 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_USER','ROLE_SALES_OPERATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_USER','ROLE_SALES_OPERATOR')")
     public ResponseEntity<CategoryResponse> getCategoryById(
             @PathVariable("id") final String id) {
         return ResponseEntity.ok(categoryService.findById(id));
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_USER','ROLE_SALES_OPERATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_USER','ROLE_SALES_OPERATOR')")
     public ResponseEntity<PageResponse<CategoryResponse>> findAllCategories(
             @RequestParam(name = "page", defaultValue = "0")
             final int page,
@@ -61,7 +61,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
     public ResponseEntity<Void> deleteCategory(
             @PathVariable("id") final String id) {
         categoryService.delete(id);
