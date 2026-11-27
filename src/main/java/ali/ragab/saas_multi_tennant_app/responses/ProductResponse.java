@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Builder
 public class ProductResponse {
+    private String id;
     private String reference;
     private String name;
     private String description;
@@ -17,5 +18,7 @@ public class ProductResponse {
     private Integer alertThreshold;
     private String categoryName;
     private BigDecimal price;
+    private String unitOfMeasure;
+    private Boolean active;
 
 }

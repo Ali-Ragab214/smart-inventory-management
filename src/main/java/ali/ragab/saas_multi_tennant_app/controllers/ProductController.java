@@ -23,31 +23,29 @@ public class ProductController {
     private final ProductService service;
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
-    public ResponseEntity<Void> createProduct(
+    @PreAuthorize("hasAnyRole('COMPANY_ADMIN','ADMINISTRATOR')")
+    public ResponseEntity<ProductResponse> createProduct(
             @Valid
             @RequestBody
             final ProductRequest request
     ) {
-        this.service.create(request);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.service.create(request));
     }
 
     @PutMapping("/{product-id}")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
-    public ResponseEntity<Void> updateProduct(
+    @PreAuthorize("hasAnyRole('COMPANY_ADMIN','ADMINISTRATOR')")
+    public ResponseEntity<ProductResponse> updateProduct(
       @RequestBody
       @Valid
         final ProductRequest request,
         @PathVariable("product-id")
         final String productId)
     {
-        this.service.update(productId, request);
-        return ResponseEntity.accepted().build();
+        return ResponseEntity.ok(this.service.update(productId, request));
     }
 
     @GetMapping("/{product-id}")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_USER','ROLE_SALES_OPERATOR')")
+    @PreAuthorize("hasAnyRole('COMPANY_ADMIN','ADMINISTRATOR','USER','SALES_OPERATOR')")
     public ResponseEntity<ProductResponse> findProductById(
             @PathVariable("product-id")
             @NotNull(message = "Product ID cannot be null")
@@ -58,18 +56,25 @@ public class ProductController {
 
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_USER','ROLE_SALES_OPERATOR')")
+    @PreAuthorize("hasAnyRole('COMPANY_ADMIN','ADMINISTRATOR','USER','SALES_OPERATOR')")
     public ResponseEntity<PageResponse<ProductResponse>> findAllProducts(
             @RequestParam(name = "page", defaultValue = "0")
             final int page,
-            @RequestParam(name = "size", defaultValue = "10")
-            final int size
+            @RequestParam(name = "size", defaultValue = "10") final int size,
+            @RequestParam(name = "search", required = false) final String search
     )  {
-        return ResponseEntity.ok(this.service.findAll(page, size));
+        return ResponseEntity.ok(this.service.findAll(page, size, search));
+    }
+
+    @GetMapping("/by-sku/{reference}")
+    @PreAuthorize("hasAnyRole('COMPANY_ADMIN','ADMINISTRATOR','USER','SALES_OPERATOR')")
+    public ResponseEntity<ProductResponse> findProductByReference(
+            @PathVariable("reference") final String reference) {
+        return ResponseEntity.ok(this.service.findByReference(reference));
     }
 
     @DeleteMapping("/{product-id}")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR')")
+    @PreAuthorize("hasAnyRole('COMPANY_ADMIN','ADMINISTRATOR')")
     public ResponseEntity<Void> deleteProduct(
             @PathVariable("product-id")
             @NotNull(message = "Product ID cannot be null")

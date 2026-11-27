@@ -22,7 +22,7 @@ public class StockMvtController {
 
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
     public ResponseEntity<Void> createStockMvt(
             @RequestBody
             @Valid
@@ -46,7 +46,7 @@ public class StockMvtController {
     }
 
     @GetMapping("/{stock-mvt-id}")
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
     public ResponseEntity<StockMvtResponse> findStockMvtById(
             @PathVariable("stock-mvt-id")
             @NotNull(message = "Stock Mvt ID cannot be null")
@@ -56,7 +56,7 @@ public class StockMvtController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyRole('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
+    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
     public ResponseEntity<PageResponse<StockMvtResponse>> findAllStockMvts(
             @RequestParam(name = "page", defaultValue = "0")
             final int page,
