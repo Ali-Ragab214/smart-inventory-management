@@ -1,22 +1,14 @@
 package ali.ragab.saas_multi_tennant_app.entities;
 
 import ali.ragab.saas_multi_tennant_app.common.AbstractEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ForeignKey;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 
 import static jakarta.persistence.EnumType.STRING;
@@ -46,7 +38,26 @@ public class StockMvt extends AbstractEntity {
     private String comment;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", foreignKey = @ForeignKey(name = "fk_product_id"))
+    @JoinColumn(name = "product_id", nullable = false, foreignKey = @ForeignKey(name = "fk_product_id"))
     private Product product;
 
+    @Builder.Default
+    @Column(name = "occurred_at", nullable = false)
+    private Instant occurredAt = Instant.now();
+
+    @Column(name = "reason", nullable = false, length = 40)
+    @Enumerated(STRING)
+    private MovementReason reason;
+
+    @Column(name = "source_type", length = 40)
+    private String sourceType;
+
+    @Column(name = "source_id")
+    private String sourceId;
+
+    @Column(name = "balance_after")
+    private Integer balanceAfter;
+
+    @Column(name = "unit_cost", precision = 19, scale = 4)
+    private BigDecimal unitCost;
 }

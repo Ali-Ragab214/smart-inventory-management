@@ -65,11 +65,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/**").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
                         .requestMatchers("/api/v1/users/**").hasRole("COMPANY_ADMIN")
 
-                        // --- stock ledger: append-only ---
+                        // --- stock ledger: append-only (legacy /api/v1/stock-mvts is read-only) ---
                         .requestMatchers(HttpMethod.PUT, "/api/v1/stock-mvts/**").denyAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/stock-mvts/**").denyAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/stock-mvts/*/reverse").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
-                        .requestMatchers(HttpMethod.POST, "/api/v1/stock-mvts").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR", "SALES_OPERATOR")
 
                         // --- tenant business data: قراءة ---
                         .requestMatchers(HttpMethod.GET, "/api/v1/categories/**", "/api/v1/products/**", "/api/v1/stock-mvts/**")
@@ -77,6 +75,12 @@ public class SecurityConfig {
                         // --- catalog: كتابة ---
                         .requestMatchers("/api/v1/categories/**", "/api/v1/products/**")
                         .hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
+
+                        // --- stock operations ---
+                        .requestMatchers(HttpMethod.GET, "/api/v1/stock/low-stock").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/stock/products/*/recompute-balance").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/stock/**").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR", "SALES_OPERATOR", "USER")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/stock/**").hasAnyRole("COMPANY_ADMIN", "ADMINISTRATOR", "SALES_OPERATOR", "USER")
                         .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))

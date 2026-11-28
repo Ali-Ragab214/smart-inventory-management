@@ -6,7 +6,6 @@ import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
 import ali.ragab.saas_multi_tennant_app.mappers.ProductMapper;
 import ali.ragab.saas_multi_tennant_app.repositories.CategoryRepository;
 import ali.ragab.saas_multi_tennant_app.repositories.ProductRepository;
-import ali.ragab.saas_multi_tennant_app.repositories.StockMvtRepository;
 import ali.ragab.saas_multi_tennant_app.requests.ProductRequest;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -19,6 +18,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,8 +28,6 @@ class ProductServiceImplTest {
     private ProductRepository productRepository;
     @Mock
     private CategoryRepository categoryRepository;
-    @Mock
-    private StockMvtRepository stockMvtRepository;
 
     @Test
     void updateAllowsTheProductToKeepItsOwnReference() {
@@ -87,9 +85,19 @@ class ProductServiceImplTest {
         assertThrows(EntityNotFoundException.class, () -> service().findById("deleted-product"));
     }
 
+    @Test
+    void deleteSoftDeletesProductWithoutModifyingStockMovements() {
+        final Product product = product("product-id", "SKU-1");
+        when(this.productRepository.findByIdAndDeletedFalse("product-id"))
+                .thenReturn(Optional.of(product));
+
+        service().delete("product-id");
+
+        verify(this.productRepository).delete(product);
+    }
+
     private ProductServiceImpl service() {
-        return new ProductServiceImpl(this.productRepository, this.categoryRepository,
-                this.stockMvtRepository, new ProductMapper());
+        return new ProductServiceImpl(this.productRepository, this.categoryRepository, new ProductMapper());
     }
 
     private ProductRequest request(final String reference) {
