@@ -1,52 +1,37 @@
 package ali.ragab.saas_multi_tennant_app.controllers;
 
 import ali.ragab.saas_multi_tennant_app.common.PageResponse;
-import ali.ragab.saas_multi_tennant_app.requests.StockMvtRequest;
 import ali.ragab.saas_multi_tennant_app.responses.StockMvtResponse;
 import ali.ragab.saas_multi_tennant_app.services.StockMvtService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/stock-mvts")
 @RequiredArgsConstructor
-@Tag(name = "Stock Movement", description = "Stock Movement API")
+@Tag(
+        name = "Stock Movements (Legacy Read-Only)",
+        description = "Read-only view of ledger rows. To record stock changes use the 'Stock Operations' endpoints under /api/v1/stock/**."
+)
 public class StockMvtController {
 
     private final StockMvtService service;
 
-
-    @PostMapping
-    @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
-    public ResponseEntity<Void> createStockMvt(
-            @RequestBody
-            @Valid
-            final StockMvtRequest request
-    ) {
-        this.service.create(request);
-        return ResponseEntity.status(201).build();
-    }
-
-    @PutMapping("/{stock-mvt-id}")
-    public ResponseEntity<Void> updateStockMvt(
-            @RequestBody
-            @Valid
-            final StockMvtRequest request,
-            @PathVariable("stock-mvt-id")
-            @NotNull(message = "Stock Mvt ID cannot be null")
-            final String id
-    ) {
-        this.service.update(id, request);
-        return ResponseEntity.accepted().build();
-    }
-
     @GetMapping("/{stock-mvt-id}")
     @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
+    @Operation(
+            summary = "Get a stock movement by id (read-only)",
+            description = "Returns a single ledger row. Movements cannot be created, modified or deleted through this API."
+    )
     public ResponseEntity<StockMvtResponse> findStockMvtById(
             @PathVariable("stock-mvt-id")
             @NotNull(message = "Stock Mvt ID cannot be null")
@@ -57,6 +42,10 @@ public class StockMvtController {
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('ROLE_COMPANY_ADMIN','ROLE_ADMINISTRATOR','ROLE_SALES_OPERATOR')")
+    @Operation(
+            summary = "List stock movements (read-only)",
+            description = "Paginated list of ledger movements across all products. This API is read-only; the ledger is append-only and written only through /api/v1/stock/movements, /receipts and /counts."
+    )
     public ResponseEntity<PageResponse<StockMvtResponse>> findAllStockMvts(
             @RequestParam(name = "page", defaultValue = "0")
             final int page,
@@ -67,6 +56,10 @@ public class StockMvtController {
     }
 
     @GetMapping("/product/{product-id}")
+    @Operation(
+            summary = "List movements of a product (read-only)",
+            description = "Prefer GET /api/v1/stock/products/{id}/movements, which supports type/date filters and returns the full ledger fields (reason, balanceAfter, sourceType...)."
+    )
     public ResponseEntity<PageResponse<StockMvtResponse>> findAllStockMvtsByProductId(
             @PathVariable("product-id")
             @NotNull(message = "Product ID cannot be null")
@@ -77,16 +70,6 @@ public class StockMvtController {
             final int size
     ) {
         return ResponseEntity.ok(this.service.findAllByProductId(productId, page, size));
-    }
-
-    @DeleteMapping("/{stock-mvt-id}")
-    public ResponseEntity<Void> deleteStockMvt(
-            @PathVariable("stock-mvt-id")
-            @NotNull(message = "Stock Mvt ID cannot be null")
-            final String id
-    ) {
-        this.service.delete(id);
-        return ResponseEntity.noContent().build();
     }
 
 }
