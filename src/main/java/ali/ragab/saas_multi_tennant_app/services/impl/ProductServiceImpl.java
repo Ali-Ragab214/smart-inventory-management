@@ -7,7 +7,6 @@ import ali.ragab.saas_multi_tennant_app.exceptions.DuplicateResourceException;
 import ali.ragab.saas_multi_tennant_app.mappers.ProductMapper;
 import ali.ragab.saas_multi_tennant_app.repositories.CategoryRepository;
 import ali.ragab.saas_multi_tennant_app.repositories.ProductRepository;
-import ali.ragab.saas_multi_tennant_app.repositories.StockMvtRepository;
 import ali.ragab.saas_multi_tennant_app.requests.ProductRequest;
 import ali.ragab.saas_multi_tennant_app.responses.ProductResponse;
 import ali.ragab.saas_multi_tennant_app.services.ProductService;
@@ -28,7 +27,6 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository repository;
     private final CategoryRepository categoryRepository;
-    private final StockMvtRepository stockMvtRepository;
     private final ProductMapper productMapper;
 
     @Override
@@ -87,10 +85,6 @@ public class ProductServiceImpl implements ProductService {
     public void delete(final String id) {
         final Product product = this.repository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new EntityNotFoundException("Product does not exist"));
-
-        // Soft delete keeps the row, so the FK cannot cascade for us.
-        final int movements = this.stockMvtRepository.softDeleteByProductId(id);
-        log.debug("Soft-deleted {} stock movements for product {}", movements, id);
 
         this.repository.delete(product);
     }
